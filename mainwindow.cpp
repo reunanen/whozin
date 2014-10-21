@@ -18,6 +18,10 @@ namespace {
 
     const int maxInactivitySeconds = 60;
     const int inactivityIconsPerSecond = 10;
+
+    const int inactivityGreen = 3;
+    const int inactivityYellow = 10;
+    const int inactivityRed = 30;
 }
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -139,10 +143,6 @@ void MainWindow::initIcons()
             int green = 0;
             int blue = 0;
 
-            int inactivityGreen = 2;
-            int inactivityYellow = 10;
-            int inactivityRed = 30;
-
             if (inactivityInSeconds < inactivityGreen) {
                 green = 255;
             }
@@ -232,7 +232,7 @@ void MainWindow::processMessages()
     updateClientActivityStatus();
 
     // repeat
-    QTimer::singleShot(messageReceived ? 0 : 100, this, SLOT(processMessages()));
+    QTimer::singleShot(messageReceived ? 0 : (atLeastOneItemIsChangingColor ? 100 : 1000), this, SLOT(processMessages()));
 }
 
 std::string MainWindow::extractClientAddress(const claim::AttributeMessage::Attributes& attributes)
@@ -325,6 +325,8 @@ void MainWindow::updateClientActivityStatus()
 {
     QTreeWidgetItem* invisibleRoot = treeWidget->invisibleRootItem();
 
+    atLeastOneItemIsChangingColor = false;
+
     for (auto i = clientData.begin(), end = clientData.end(); i != end; ++i) {
         const std::string& clientAddress = i->first;
         ClientDataItem& clientDataItem = i->second;
@@ -336,6 +338,9 @@ void MainWindow::updateClientActivityStatus()
                 treeWidgetItem->setHidden(true);
             }
             else {
+                if (inactivityInSeconds >= inactivityGreen && inactivityInSeconds < inactivityRed) {
+                    atLeastOneItemIsChangingColor = true;
+                }
                 int inactivityIndex = static_cast<int>(inactivityInSeconds * inactivityIconsPerSecond);
                 if (inactivityIndex >= iconsByInactivityPeriod.size()) {
                     inactivityIndex = iconsByInactivityPeriod.size() - 1;

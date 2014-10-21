@@ -62,6 +62,8 @@ private:
     ClientData clientData;
 
     std::vector<QIcon> iconsByInactivityPeriod;
+
+    bool atLeastOneItemIsChangingColor;
 };
 
 #endif // MAINWINDOW_H
