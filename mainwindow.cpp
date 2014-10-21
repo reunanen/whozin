@@ -75,7 +75,7 @@ void MainWindow::initUI()
     treeWidget = new QTreeWidget(this);
     treeWidget->setSortingEnabled(true);
 
-    addColumn(tr("Address"), "client_address", 140, ColumnDataType::String);
+    addColumn(tr("Address"), "client_address", 120, ColumnDataType::String);
     addColumn(tr("Hostname"), "hostname", 80, ColumnDataType::String);
     addColumn(tr("Username"), "username", 80, ColumnDataType::String);
 
@@ -93,7 +93,10 @@ void MainWindow::initUI()
     int numericColumnEnd = columns.size();
 
     addColumn(tr("Started"), "time_started_utc", 158, ColumnDataType::TimestampUTC);
-    addColumn(tr("Latest update"), "time_current_utc", 158, ColumnDataType::TimestampUTC);
+
+    latestUpdateColumnNumber = columns.size();
+
+    addColumn(tr("Latest update"), "time_current_utc", 182, ColumnDataType::TimestampUTC);
     addColumn(tr("Working dir"), "working_dir", 160, ColumnDataType::String);
 
     QTreeWidgetItem* headerItem = new QTreeWidgetItem(columns);
@@ -349,7 +352,7 @@ void MainWindow::updateClientActivityStatus()
                     treeWidgetItem->setHidden(false);
                 }
                 const QIcon& icon = iconsByInactivityPeriod[inactivityIndex];
-                treeWidgetItem->setIcon(0, icon);
+                treeWidgetItem->setIcon(latestUpdateColumnNumber, icon);
             }
         }
     }

@@ -63,6 +63,7 @@ private:
 
     std::vector<QIcon> iconsByInactivityPeriod;
 
+    int latestUpdateColumnNumber;
     bool atLeastOneItemIsChangingColor;
 };
 
