@@ -2,6 +2,7 @@
 #define CLIENTDATA_H
 
 #include <string>
+#include <numcfc/Time.h>
 
 enum ColumnDataType {
     Unknown = 0,
@@ -23,6 +24,7 @@ struct ColumnDataItem
 struct ClientDataItem
 {
     int rowNumber;
+    numcfc::TimeElapsed teSinceActivity;
 };
 
 #endif // CLIENTDATA_H

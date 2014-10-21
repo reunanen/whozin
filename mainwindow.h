@@ -4,8 +4,11 @@
 #include "clientdata.h"
 
 #include <QMainWindow>
+
 #include <numcfc/IniFile.h>
 #include <messaging/claim/PostOffice.h>
+#include <messaging/claim/AttributeMessage.h>
+
 #include <unordered_map>
 
 namespace Ui {
@@ -34,9 +37,13 @@ protected:
 private:
     void initUI();
     void initMessaging();
+    void initIcons();
     void addColumn(const QString& title, const std::string& attributeName, int columnWidth, ColumnDataType dataType, double realDivider = 1.0);
+    static std::string extractClientAddress(const claim::AttributeMessage::Attributes& attributes);
+    ClientDataItem& addOrGetExistingClient(const std::string& clientAddress);
     void addClient(const std::string& clientAddress);
     void processAttribute(const std::string& attributeName, const std::string& attributeValue, QTreeWidgetItem* clientItem);
+    void updateClientActivityStatus();
     QString columnDataToString(const std::string& attributeValue, ColumnDataType dataType, double realDivider);
 
     Ui::MainWindow *ui;
@@ -48,6 +55,8 @@ private:
     QStringList columns;
     std::unordered_map<std::string, ColumnDataItem> columnData;
     std::unordered_map<std::string, ClientDataItem> clientData;
+
+    std::vector<QIcon> iconsByInactivityPeriod;
 };
 
 #endif // MAINWINDOW_H

@@ -3,16 +3,19 @@
 
 #include <numcfc/Time.h>
 #include <numcfc/Logger.h>
-#include <messaging/claim/AttributeMessage.h>
 
 #include <QSettings>
 #include <QTimer>
 #include <QTreeWidget>
+#include <QPainter>
 #include <assert.h>
 
 namespace {
     const char* companyName = "Tomaattinen";
     const char* applicationName = "whozin";
+
+    const int maxInactivitySeconds = 60;
+    const int inactivityIconsPerSecond = 10;
 }
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -105,6 +108,55 @@ void MainWindow::initUI()
             treeWidget->setColumnWidth(i, columnWidth);
         }
     }
+
+    initIcons();
+}
+
+void MainWindow::initIcons()
+{
+    assert(iconsByInactivityPeriod.empty());
+    for (int i = 0, end = maxInactivitySeconds * inactivityIconsPerSecond; i < end; ++i) {
+
+        double iconWidth = 32;
+        double iconHeight = 32;
+        QImage img(iconWidth, iconHeight, QImage::Format_ARGB32);
+
+        img.fill(Qt::transparent);
+        {
+            double inactivityInSeconds = i / static_cast<double>(inactivityIconsPerSecond);
+
+            int red = 0;
+            int green = 0;
+            int blue = 0;
+
+            int inactivityGreen = 2;
+            int inactivityYellow = 10;
+            int inactivityRed = 30;
+
+            if (inactivityInSeconds < inactivityGreen) {
+                green = 255;
+            }
+            else if (inactivityInSeconds < inactivityYellow) {
+                green = 255;
+                red = 255 * (inactivityInSeconds - inactivityGreen) / (inactivityYellow - inactivityGreen);
+            }
+            else if (inactivityInSeconds < inactivityRed) {
+                green = 255 * (inactivityRed - inactivityInSeconds) / (inactivityRed - inactivityYellow);
+                red = 255;
+            }
+            else {
+                red = 255;
+            }
+
+            QPainter painter(&img);
+            QColor color(red, green, blue);
+            painter.setPen(color);
+            painter.setBrush(color);
+            painter.drawEllipse(QPointF(iconWidth / 2.0, iconHeight / 2.0), (iconWidth - 1) / 2, (iconHeight - 1) / 2);
+        }
+        QIcon icon(QPixmap::fromImage(img));
+        iconsByInactivityPeriod.push_back(icon);
+    }
 }
 
 void MainWindow::addColumn(const QString& title, const std::string& attributeName, int columnWidth, ColumnDataType dataType, double realNumberDivider)
@@ -139,20 +191,16 @@ void MainWindow::processMessages()
 
         if (msg.GetType() == "__claim_MsgStatus") {
             claim::AttributeMessage amsg(msg);
-            auto i = amsg.m_attributes.find("client_address");
-            if (i != amsg.m_attributes.end()) {
-                const std::string& clientAddress = i->second;
-                auto j = clientData.find(clientAddress);
-                if (j == clientData.end()) {
-                    addClient(clientAddress);
-                    j = clientData.find(clientAddress);
-                }
-                int rowNumber = j->second.rowNumber;
+            const std::string clientAddress = extractClientAddress(amsg.m_attributes);
+            if (!clientAddress.empty()) {
+                ClientDataItem& clientDataItem = addOrGetExistingClient(clientAddress);
+                clientDataItem.teSinceActivity.ResetToCurrent();
+                int rowNumber = clientDataItem.rowNumber;
                 QTreeWidgetItem* clientItem = treeWidget->invisibleRootItem()->child(rowNumber);
 
-                for (auto k : amsg.m_attributes) {
-                    const std::string& attributeName = k.first;
-                    const std::string& attributeValue = k.second;
+                for (const auto& i : amsg.m_attributes) {
+                    const std::string& attributeName = i.first;
+                    const std::string& attributeValue = i.second;
                     processAttribute(attributeName, attributeValue, clientItem);
                 }
             }
@@ -166,8 +214,31 @@ void MainWindow::processMessages()
         error = postOffice.GetError();
     }
 
+    updateClientActivityStatus();
+
     // repeat
     QTimer::singleShot(messageReceived ? 0 : 100, this, SLOT(processMessages()));
+}
+
+std::string MainWindow::extractClientAddress(const claim::AttributeMessage::Attributes& attributes)
+{
+    auto i = attributes.find("client_address");
+    if (i != attributes.end()) {
+        const std::string& clientAddress = i->second;
+        return clientAddress;
+    }
+    return "";
+}
+
+ClientDataItem& MainWindow::addOrGetExistingClient(const std::string& clientAddress)
+{
+    auto i = clientData.find(clientAddress);
+    if (i == clientData.end()) {
+        addClient(clientAddress);
+        i = clientData.find(clientAddress);
+    }
+    ClientDataItem& clientDataItem = i->second;
+    return clientDataItem;
 }
 
 void MainWindow::addClient(const std::string& clientAddress)
@@ -179,6 +250,7 @@ void MainWindow::addClient(const std::string& clientAddress)
     clientData[clientAddress] = clientDataItem;
 
     QTreeWidgetItem* newClient = new QTreeWidgetItem(treeWidget);
+    newClient->setChildIndicatorPolicy(QTreeWidgetItem::DontShowIndicator);
     newClient->setText(0, QString(clientAddress.c_str()));
 
     QTreeWidgetItem* headerItem = treeWidget->headerItem();
@@ -199,6 +271,31 @@ void MainWindow::processAttribute(const std::string& attributeName, const std::s
         const ColumnDataItem& columnDataItem = k->second;
         QString s = columnDataToString(attributeValue, columnDataItem.dataType, columnDataItem.realNumberDivider);
         clientItem->setText(columnDataItem.columnNumber, s);
+    }
+}
+
+void MainWindow::updateClientActivityStatus()
+{
+    QTreeWidgetItem* invisibleRoot = treeWidget->invisibleRootItem();
+
+    for (auto i = clientData.begin(), end = clientData.end(); i != end; ++i) {
+        ClientDataItem& clientDataItem = i->second;
+        QTreeWidgetItem* treeWidgetItem = invisibleRoot->child(clientDataItem.rowNumber);
+        double inactivityInSeconds = clientDataItem.teSinceActivity.GetElapsedSeconds();
+        if (inactivityInSeconds > maxInactivitySeconds) {
+            treeWidgetItem->setHidden(true);
+        }
+        else {
+            int inactivityIndex = static_cast<int>(inactivityInSeconds * inactivityIconsPerSecond);
+            if (inactivityIndex >= iconsByInactivityPeriod.size()) {
+                inactivityIndex = iconsByInactivityPeriod.size() - 1;
+            }
+            if (treeWidgetItem->isHidden()) {
+                treeWidgetItem->setHidden(false);
+            }
+            const QIcon& icon = iconsByInactivityPeriod[inactivityIndex];
+            treeWidgetItem->setIcon(0, icon);
+        }
     }
 }
 
