@@ -1,6 +1,8 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include "mytreewidgetitem.h"
+
 #include <numcfc/Time.h>
 #include <numcfc/Logger.h>
 
@@ -52,6 +54,8 @@ void MainWindow::closeEvent(QCloseEvent *event)
     }
 
     settings.setValue("showInactiveClients", ui->actionShowInactiveClients->isChecked());
+    settings.setValue("sortColumn", treeWidget->sortColumn());
+    settings.setValue("sortOrder", treeWidget->header()->sortIndicatorOrder());
 
     QMainWindow::closeEvent(event);
 }
@@ -65,6 +69,7 @@ void MainWindow::init()
 void MainWindow::initUI()
 {
     treeWidget = new QTreeWidget(this);
+    treeWidget->setSortingEnabled(true);
 
     addColumn(tr("Address"), "client_address", 180, ColumnDataType::String);
     addColumn(tr("Hostname"), "hostname", 80, ColumnDataType::String);
@@ -111,6 +116,8 @@ void MainWindow::initUI()
             treeWidget->setColumnWidth(i, columnWidth);
         }
     }
+
+    treeWidget->sortByColumn(settings.value("sortColumn").toInt(), static_cast<Qt::SortOrder>(settings.value("sortOrder").toInt()));
 
     initIcons();
 }
@@ -189,6 +196,9 @@ void MainWindow::processMessages()
 {
     slaim::Message msg;
     bool messageReceived = false;
+
+    treeWidget->setSortingEnabled(false);
+
     while (postOffice.Receive(msg, 0.0)) {
         messageReceived = true;
 
@@ -198,7 +208,7 @@ void MainWindow::processMessages()
             if (!clientAddress.empty()) {
                 ClientDataItem& clientDataItem = addOrGetExistingClient(clientAddress);
                 clientDataItem.teSinceActivity.ResetToCurrent();
-                int rowNumber = clientDataItem.rowNumber;
+                int rowNumber = findRowNumber(clientAddress);
                 QTreeWidgetItem* clientItem = treeWidget->invisibleRootItem()->child(rowNumber);
 
                 for (const auto& i : amsg.m_attributes) {
@@ -209,6 +219,8 @@ void MainWindow::processMessages()
             }
         }
     }
+
+    treeWidget->setSortingEnabled(true);
 
     // check errors and write to log, if any
     std::string error = postOffice.GetError();
@@ -249,12 +261,13 @@ void MainWindow::addClient(const std::string& clientAddress)
     QTreeWidgetItem* invisibleRoot = treeWidget->invisibleRootItem();
 
     ClientDataItem clientDataItem;
-    clientDataItem.rowNumber = invisibleRoot->childCount();
     clientData[clientAddress] = clientDataItem;
 
-    QTreeWidgetItem* newClient = new QTreeWidgetItem(treeWidget);
+    QTreeWidgetItem* newClient = new MyTreeWidgetItem(treeWidget, columnData);
     newClient->setChildIndicatorPolicy(QTreeWidgetItem::DontShowIndicator);
     newClient->setText(0, QString(clientAddress.c_str()));
+
+    bool isMe = clientAddress == postOffice.GetClientAddress();
 
     QTreeWidgetItem* headerItem = treeWidget->headerItem();
     for (int i = 0, end = headerItem->columnCount(); i < end; ++i) {
@@ -262,9 +275,27 @@ void MainWindow::addClient(const std::string& clientAddress)
             newClient->setText(i, QString(""));
         }
         newClient->setTextAlignment(i, headerItem->textAlignment(i));
+
+        if (isMe) {
+            newClient->setTextColor(i, Qt::darkGray);
+        }
     }
 
     invisibleRoot->addChild(newClient);
+}
+
+int MainWindow::findRowNumber(const std::string& clientAddress) const
+{
+    QTreeWidgetItem* invisibleRoot = treeWidget->invisibleRootItem();
+
+    for (int i = 0, end = invisibleRoot->childCount(); i < end; ++i) {
+        QTreeWidgetItem* treeWidgetItem = invisibleRoot->child(i);
+        if (treeWidgetItem->text(0) == QString(clientAddress.c_str())) {
+            return i;
+        }
+    }
+
+    return -1;
 }
 
 void MainWindow::processAttribute(const std::string& attributeName, const std::string& attributeValue, QTreeWidgetItem* clientItem)
@@ -282,22 +313,26 @@ void MainWindow::updateClientActivityStatus()
     QTreeWidgetItem* invisibleRoot = treeWidget->invisibleRootItem();
 
     for (auto i = clientData.begin(), end = clientData.end(); i != end; ++i) {
+        const std::string& clientAddress = i->first;
         ClientDataItem& clientDataItem = i->second;
-        QTreeWidgetItem* treeWidgetItem = invisibleRoot->child(clientDataItem.rowNumber);
-        double inactivityInSeconds = clientDataItem.teSinceActivity.GetElapsedSeconds();
-        if (inactivityInSeconds > maxInactivitySeconds && !ui->actionShowInactiveClients->isChecked()) {
-            treeWidgetItem->setHidden(true);
-        }
-        else {
-            int inactivityIndex = static_cast<int>(inactivityInSeconds * inactivityIconsPerSecond);
-            if (inactivityIndex >= iconsByInactivityPeriod.size()) {
-                inactivityIndex = iconsByInactivityPeriod.size() - 1;
+        int rowNumber = findRowNumber(clientAddress);
+        if (rowNumber >= 0) {
+            QTreeWidgetItem* treeWidgetItem = invisibleRoot->child(rowNumber);
+            double inactivityInSeconds = clientDataItem.teSinceActivity.GetElapsedSeconds();
+            if (inactivityInSeconds > maxInactivitySeconds && !ui->actionShowInactiveClients->isChecked()) {
+                treeWidgetItem->setHidden(true);
             }
-            if (treeWidgetItem->isHidden()) {
-                treeWidgetItem->setHidden(false);
+            else {
+                int inactivityIndex = static_cast<int>(inactivityInSeconds * inactivityIconsPerSecond);
+                if (inactivityIndex >= iconsByInactivityPeriod.size()) {
+                    inactivityIndex = iconsByInactivityPeriod.size() - 1;
+                }
+                if (treeWidgetItem->isHidden()) {
+                    treeWidgetItem->setHidden(false);
+                }
+                const QIcon& icon = iconsByInactivityPeriod[inactivityIndex];
+                treeWidgetItem->setIcon(0, icon);
             }
-            const QIcon& icon = iconsByInactivityPeriod[inactivityIndex];
-            treeWidgetItem->setIcon(0, icon);
         }
     }
 }

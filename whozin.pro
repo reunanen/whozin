@@ -21,6 +21,8 @@ LIBS += -L/Local/boost_1_56_0/stage/lib/x86 \
 
 SOURCES += main.cpp \
     mainwindow.cpp \
+    clientdata.cpp \
+    mytreewidgetitem.cpp \
     ../Numcore_messaging_library/numcfc/IdGenerator.cpp \
     ../Numcore_messaging_library/numcfc/IniFile.cpp \
     ../Numcore_messaging_library/numcfc/Logger.cpp \
@@ -31,10 +33,10 @@ SOURCES += main.cpp \
     ../Numcore_messaging_library/messaging/claim/PostOfficeInitializer.cpp \
     ../Numcore_messaging_library/messaging/claim/AttributeMessage.cpp \
     ../Numcore_messaging_library/messaging/numsprew/numsprew_postoffice.cpp \
-    ../Numcore_messaging_library/messaging/numsprew/signaling_select.cpp \
-    clientdata.cpp
+    ../Numcore_messaging_library/messaging/numsprew/signaling_select.cpp
 
 HEADERS  += mainwindow.h \
+    mytreewidgetitem.h \
     clientdata.h
 
 FORMS    += mainwindow.ui

@@ -1,8 +1,9 @@
 #ifndef CLIENTDATA_H
 #define CLIENTDATA_H
 
-#include <string>
 #include <numcfc/Time.h>
+#include <string>
+#include <unordered_map>
 
 enum ColumnDataType {
     Unknown = 0,
@@ -23,8 +24,10 @@ struct ColumnDataItem
 
 struct ClientDataItem
 {
-    int rowNumber;
     numcfc::TimeElapsed teSinceActivity;
 };
+
+typedef std::unordered_map<std::string, ColumnDataItem> ColumnData;
+typedef std::unordered_map<std::string, ClientDataItem> ClientData;
 
 #endif // CLIENTDATA_H

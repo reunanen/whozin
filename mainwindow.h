@@ -45,6 +45,7 @@ private:
     static std::string extractClientAddress(const claim::AttributeMessage::Attributes& attributes);
     ClientDataItem& addOrGetExistingClient(const std::string& clientAddress);
     void addClient(const std::string& clientAddress);
+    int findRowNumber(const std::string& clientAddress) const;
     void processAttribute(const std::string& attributeName, const std::string& attributeValue, QTreeWidgetItem* clientItem);
     void updateClientActivityStatus();
     QString columnDataToString(const std::string& attributeValue, ColumnDataType dataType, double realDivider);
@@ -56,8 +57,8 @@ private:
     claim::PostOffice postOffice;
 
     QStringList columns;
-    std::unordered_map<std::string, ColumnDataItem> columnData;
-    std::unordered_map<std::string, ClientDataItem> clientData;
+    ColumnData columnData;
+    ClientData clientData;
 
     std::vector<QIcon> iconsByInactivityPeriod;
 };
