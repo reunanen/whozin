@@ -27,14 +27,14 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-public slots:
-    void init();
-    void processMessages();
-
 protected:
     void closeEvent(QCloseEvent *event);
 
 private slots:
+    void init();
+    void processMessages();
+    void updateClientActivityStatus();
+
     void on_actionShowInactiveClients_triggered(bool checked);
 
 private:
@@ -48,7 +48,6 @@ private:
     void addClient(const std::string& clientAddress);
     int findRowNumber(const std::string& clientAddress) const;
     void processAttribute(const std::string& attributeName, const std::string& attributeValue, QTreeWidgetItem* clientItem);
-    void updateClientActivityStatus();
     QString columnDataToString(const std::string& attributeValue, ColumnDataType dataType, double realDivider);
 
     Ui::MainWindow *ui;
@@ -64,7 +63,6 @@ private:
     std::vector<QIcon> iconsByInactivityPeriod;
 
     int latestUpdateColumnNumber;
-    bool atLeastOneItemIsChangingColor;
 };
 
 #endif // MAINWINDOW_H

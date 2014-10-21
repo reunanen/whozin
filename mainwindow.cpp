@@ -235,7 +235,7 @@ void MainWindow::processMessages()
     updateClientActivityStatus();
 
     // repeat
-    QTimer::singleShot(messageReceived ? 0 : (atLeastOneItemIsChangingColor ? 100 : 1000), this, SLOT(processMessages()));
+    QTimer::singleShot(messageReceived ? 0 : 1000, this, SLOT(processMessages()));
 }
 
 std::string MainWindow::extractClientAddress(const claim::AttributeMessage::Attributes& attributes)
@@ -328,7 +328,7 @@ void MainWindow::updateClientActivityStatus()
 {
     QTreeWidgetItem* invisibleRoot = treeWidget->invisibleRootItem();
 
-    atLeastOneItemIsChangingColor = false;
+    bool atLeastOneItemIsChangingColor = false;
 
     for (auto i = clientData.begin(), end = clientData.end(); i != end; ++i) {
         const std::string& clientAddress = i->first;
@@ -344,7 +344,7 @@ void MainWindow::updateClientActivityStatus()
                 if (inactivityInSeconds >= inactivityGreen && inactivityInSeconds < inactivityRed) {
                     atLeastOneItemIsChangingColor = true;
                 }
-                int inactivityIndex = static_cast<int>(inactivityInSeconds * inactivityIconsPerSecond);
+                size_t inactivityIndex = static_cast<size_t>(inactivityInSeconds * inactivityIconsPerSecond);
                 if (inactivityIndex >= iconsByInactivityPeriod.size()) {
                     inactivityIndex = iconsByInactivityPeriod.size() - 1;
                 }
@@ -355,6 +355,10 @@ void MainWindow::updateClientActivityStatus()
                 treeWidgetItem->setIcon(latestUpdateColumnNumber, icon);
             }
         }
+    }
+
+    if (atLeastOneItemIsChangingColor) {
+        QTimer::singleShot(100, this, SLOT(updateClientActivityStatus()));
     }
 }
 
