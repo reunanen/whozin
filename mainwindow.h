@@ -43,6 +43,7 @@ private:
     void initIcons();
     void addColumn(const QString& title, const std::string& attributeName, int columnWidth, ColumnDataType dataType, double realDivider = 1.0);
     static std::string extractClientAddress(const claim::AttributeMessage::Attributes& attributes);
+    static std::string stripAddress(const std::string& clientAddress);
     ClientDataItem& addOrGetExistingClient(const std::string& clientAddress);
     void addClient(const std::string& clientAddress);
     int findRowNumber(const std::string& clientAddress) const;

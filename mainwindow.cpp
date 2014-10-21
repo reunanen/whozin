@@ -71,7 +71,7 @@ void MainWindow::initUI()
     treeWidget = new QTreeWidget(this);
     treeWidget->setSortingEnabled(true);
 
-    addColumn(tr("Address"), "client_address", 180, ColumnDataType::String);
+    addColumn(tr("Address"), "client_address", 140, ColumnDataType::String);
     addColumn(tr("Hostname"), "hostname", 80, ColumnDataType::String);
     addColumn(tr("Username"), "username", 80, ColumnDataType::String);
 
@@ -240,9 +240,20 @@ std::string MainWindow::extractClientAddress(const claim::AttributeMessage::Attr
     auto i = attributes.find("client_address");
     if (i != attributes.end()) {
         const std::string& clientAddress = i->second;
-        return clientAddress;
+        return stripAddress(clientAddress);
     }
     return "";
+}
+
+std::string MainWindow::stripAddress(const std::string& clientAddress)
+{
+    std::string::size_type pos = clientAddress.rfind("#localhost");
+    if (pos != std::string::npos) {
+        return clientAddress.substr(0, pos);
+    }
+    else {
+        return clientAddress;
+    }
 }
 
 ClientDataItem& MainWindow::addOrGetExistingClient(const std::string& clientAddress)
@@ -267,7 +278,7 @@ void MainWindow::addClient(const std::string& clientAddress)
     newClient->setChildIndicatorPolicy(QTreeWidgetItem::DontShowIndicator);
     newClient->setText(0, QString(clientAddress.c_str()));
 
-    bool isMe = clientAddress == postOffice.GetClientAddress();
+    bool isMe = clientAddress == stripAddress(postOffice.GetClientAddress());
 
     QTreeWidgetItem* headerItem = treeWidget->headerItem();
     for (int i = 0, end = headerItem->columnCount(); i < end; ++i) {
@@ -303,8 +314,10 @@ void MainWindow::processAttribute(const std::string& attributeName, const std::s
     auto k = columnData.find(attributeName);
     if (k != columnData.end()) {
         const ColumnDataItem& columnDataItem = k->second;
-        QString s = columnDataToString(attributeValue, columnDataItem.dataType, columnDataItem.realNumberDivider);
-        clientItem->setText(columnDataItem.columnNumber, s);
+        if (columnDataItem.columnNumber != 0) {
+            QString s = columnDataToString(attributeValue, columnDataItem.dataType, columnDataItem.realNumberDivider);
+            clientItem->setText(columnDataItem.columnNumber, s);
+        }
     }
 }
 
