@@ -34,6 +34,9 @@ public slots:
 protected:
     void closeEvent(QCloseEvent *event);
 
+private slots:
+    void on_actionShowInactiveClients_triggered(bool checked);
+
 private:
     void initUI();
     void initMessaging();

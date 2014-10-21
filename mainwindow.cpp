@@ -30,6 +30,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QSettings settings(companyName, applicationName);
     restoreGeometry(settings.value("mainWindowGeometry").toByteArray());
     restoreState(settings.value("mainWindowState").toByteArray());
+    ui->actionShowInactiveClients->setChecked(settings.value("showInactiveClients", false).toBool());
 
     QTimer::singleShot(0, this, SLOT(init()));
 }
@@ -49,6 +50,8 @@ void MainWindow::closeEvent(QCloseEvent *event)
         QString key = "columnWidth_" + QString::number(i);
         settings.setValue(key, treeWidget->columnWidth(i));
     }
+
+    settings.setValue("showInactiveClients", ui->actionShowInactiveClients->isChecked());
 
     QMainWindow::closeEvent(event);
 }
@@ -282,7 +285,7 @@ void MainWindow::updateClientActivityStatus()
         ClientDataItem& clientDataItem = i->second;
         QTreeWidgetItem* treeWidgetItem = invisibleRoot->child(clientDataItem.rowNumber);
         double inactivityInSeconds = clientDataItem.teSinceActivity.GetElapsedSeconds();
-        if (inactivityInSeconds > maxInactivitySeconds) {
+        if (inactivityInSeconds > maxInactivitySeconds && !ui->actionShowInactiveClients->isChecked()) {
             treeWidgetItem->setHidden(true);
         }
         else {
@@ -324,5 +327,23 @@ QString MainWindow::columnDataToString(const std::string& attributeValue, Column
     }
     default:
         return tr("DEFAULT: ") + QString(attributeValue.c_str());
+    }
+}
+
+void MainWindow::on_actionShowInactiveClients_triggered(bool checked)
+{
+    if (checked) {
+        // show all clients
+        QTreeWidgetItem* invisibleRoot = treeWidget->invisibleRootItem();
+
+        for (int i = 0, end = invisibleRoot->childCount(); i < end; ++i) {
+            QTreeWidgetItem* treeWidgetItem = invisibleRoot->child(i);
+            if (treeWidgetItem->isHidden()) {
+                treeWidgetItem->setHidden(false);
+            }
+        }
+    }
+    else {
+        updateClientActivityStatus();
     }
 }
