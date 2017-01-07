@@ -190,7 +190,12 @@ void MainWindow::addColumn(const QString& title, const std::string& attributeNam
 
 void MainWindow::initMessaging()
 {
+    iniFile.Refresh();
     postOffice.Initialize(iniFile, "whozin");
+    if (iniFile.IsDirty()) {
+        iniFile.Save();
+    }
+
     postOffice.Subscribe("__claim_MsgStatus");
     QTimer::singleShot(100, this, SLOT(processMessages()));
 }
