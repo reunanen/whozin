@@ -22,6 +22,8 @@ DEFINES += _ALLOW_KEYWORD_MACROS
 DEFINES += AMQ_PLATFORM=\\\"Windows\\\"
 DEFINES += "_WIN32_WINNT=0x0501"
 DEFINES += "inline=__inline"
+DEFINES += GUID_WINDOWS
+DEFINES += "snprintf=_snprintf_s"
 
 LIBS += -lws2_32 -ladvapi32
 
@@ -56,7 +58,8 @@ SOURCES += main.cpp \
     Numcore_messaging_library/messaging/numrabw/rabbitmq-c/librabbitmq/amqp_table.c \
     Numcore_messaging_library/messaging/numrabw/rabbitmq-c/librabbitmq/amqp_tcp_socket.c \
     Numcore_messaging_library/messaging/numrabw/rabbitmq-c/librabbitmq/amqp_time.c \
-    Numcore_messaging_library/messaging/numrabw/rabbitmq-c/librabbitmq/amqp_url.c
+    Numcore_messaging_library/messaging/numrabw/rabbitmq-c/librabbitmq/amqp_url.c \
+    Numcore_messaging_library/messaging/numrabw/crossguid/Guid.cpp
 
 HEADERS  += mainwindow.h \
     mytreewidgetitem.h \
@@ -73,7 +76,6 @@ HEADERS  += mainwindow.h \
     Numcore_messaging_library/messaging/slaim/errorlog.h \
     Numcore_messaging_library/messaging/slaim/message.h \
     Numcore_messaging_library/messaging/slaim/postoffice.h \
-    Numcore_messaging_library/messaging/slaim/postoffice_extended.h \
     Numcore_messaging_library/messaging/numrabw/numrabw_postoffice.h \
     Numcore_messaging_library/messaging/numrabw/rabbitmq-c/librabbitmq/amqp.h \
     Numcore_messaging_library/messaging/numrabw/rabbitmq-c/librabbitmq/amqp_framing.h \
