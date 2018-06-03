@@ -38,6 +38,9 @@ private slots:
     void on_actionShowInactiveClients_triggered(bool checked);
 
 private:
+#ifdef WIN32
+    void initWindowsSocketsAPI();
+#endif
     void initUI();
     void initMessaging();
     void initIcons();

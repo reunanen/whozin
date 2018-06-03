@@ -5,7 +5,7 @@
 #include <string>
 #include <unordered_map>
 
-enum ColumnDataType {
+enum class ColumnDataType {
     Unknown = 0,
     String = 1,
     Integer = 2,

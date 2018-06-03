@@ -12,6 +12,11 @@
 #include <QPainter>
 #include <assert.h>
 
+#ifdef WIN32
+#include <QMessageBox>
+#include <WinSock2.h>
+#endif // WIN32
+
 namespace {
     const char* companyName = "Tomaattinen";
     const char* applicationName = "whozin";
@@ -66,9 +71,27 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 void MainWindow::init()
 {
+#ifdef WIN32
+    initWindowsSocketsAPI();
+#endif
     initUI();
     initMessaging();
 }
+
+#ifdef WIN32
+void MainWindow::initWindowsSocketsAPI()
+{
+    WORD wVersionRequested = MAKEWORD(2, 2);
+    WSADATA wsaData = {0};
+
+    const auto error = WSAStartup(wVersionRequested, &wsaData);
+    if (error != 0) {
+        QMessageBox::critical(this,
+                              MainWindow::tr("Windows Sockets API initialization error!"),
+                              MainWindow::tr("WSAStartup failed with error: %1").arg(QString::number(error)));
+    }
+}
+#endif
 
 void MainWindow::initUI()
 {
